@@ -9,6 +9,7 @@ import org.apache.flink.api.java.typeutils.ResultTypeQueryable
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.source.{MessageAcknowledgingSourceBase, SourceFunction}
 import org.eclipse.paho.client.mqttv3._
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
 import org.slf4j.LoggerFactory
 
 import scala.collection.convert.WrapAsScala._
@@ -21,7 +22,7 @@ class MQTTSource[OUT](config: MQTTSourceConfig[OUT])
   val log = LoggerFactory.getLogger(classOf[MQTTSource[OUT]])
 
   val uri = config.uri
-  val clientId = config.clientId
+  val clientIdPrefix = config.clientIdPrefix
   val topic = config.topic
   val qos = config.qos
   val deserializationSchema = config.deserializationSchema
@@ -33,8 +34,20 @@ class MQTTSource[OUT](config: MQTTSourceConfig[OUT])
 
   override def open(parameters: Configuration): Unit = {
     super.open(parameters)
-    client = new MqttClient(uri, clientId)
-    client.connect()
+
+    val connOpts = new MqttConnectOptions
+    connOpts.setCleanSession(true)
+
+    // usual brokers(such as mosquitto) are disconnecting clients that have same client id.
+    //   because brokers judges it to be an old connection.
+    // so this implementation generate unique client ids for each threads.
+    val genClientId = "%s_%04d%05d".format(
+      clientIdPrefix,
+      Thread.currentThread().getId % 10000,
+      System.currentTimeMillis % 100000
+    )
+    client = new MqttClient(uri, genClientId, new MemoryPersistence())
+    client.connect(connOpts)
 
     // todo: support multiple topic
     client.subscribe(topic, qos)

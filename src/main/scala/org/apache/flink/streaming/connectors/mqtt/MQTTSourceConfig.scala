@@ -6,22 +6,23 @@ import org.apache.flink.util.Preconditions
 
 class MQTTSourceConfig[OUT](
                              uriArg: String,
-                             clientIdArg: String,
+                             clientIdPrefixArg: String,
                              topicArg: String,
                              qosArg: Int,
                              deserializationSchemaArg: DeserializationSchema[OUT]
                            ) {
 
   val uri = Preconditions.checkNotNull(uriArg, "uri not set")
-  val clientId = Preconditions.checkNotNull(clientIdArg, "clientId not set")
+  val clientIdPrefix = Preconditions.checkNotNull(clientIdPrefixArg, "clientId not set")
   val topic = Preconditions.checkNotNull(topicArg, "topic not set")
   val qos = Preconditions.checkNotNull(qosArg, "qos not set")
   val deserializationSchema = Preconditions.checkNotNull(deserializationSchemaArg, "deserializationSchema not set")
 }
 object MQTTSourceConfig {
   class Builder[OUT] {
+
     var uri: String = _
-    var clientId: String = _
+    var clientIdPrefix: String = _
     var topic: String = _
     var qos: Int = _
     var deserializationSchema: DeserializationSchema[OUT] = _
@@ -31,8 +32,8 @@ object MQTTSourceConfig {
       this
     }
 
-    def setClientId(clientId: String): Builder[OUT] = {
-      this.clientId = clientId
+    def setClientIdPrefix(clientIdPrefix: String): Builder[OUT] = {
+      this.clientIdPrefix = clientIdPrefix
       this
     }
 
@@ -53,7 +54,7 @@ object MQTTSourceConfig {
     }
 
     def build(): MQTTSourceConfig[OUT] = {
-      new MQTTSourceConfig[OUT](uri, clientId, topic, qos, deserializationSchema)
+      new MQTTSourceConfig[OUT](uri, clientIdPrefix, topic, qos, deserializationSchema)
     }
   }
 
